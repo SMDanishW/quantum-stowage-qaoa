@@ -27,3 +27,10 @@ QAOA demonstrator for container-to-slot assignment on a simplified bay-row-tier 
 
 ## Agents & workflow
 Subagents in `.claude/agents/`; loop and gates per WORKFLOW.md; status in TICKETS.md; reviewer runs qa-security-checklist.md (§5 quantum + §3 scientific-integrity are the hot sections — this project lives or dies on honest reporting).
+
+## ⛔ Fable 5 checkpoint (token budget — MANDATORY)
+`architect` and `reviewer` run on claude-fable-5 (expensive). NEVER invoke a Fable-5 subagent silently. Before any such call:
+1. STOP and print exactly:
+   > ⛔ **FABLE 5 CHECKPOINT** — `<architect|reviewer>` needed for <ticket/step>: <one-line reason>. Reply: **fable** (proceed) / **opus** (downgrade this call) / **defer**.
+2. Wait for the user's reply. **opus** → invoke the same subagent with model overridden to claude-opus-4-8. **defer** → note it in TICKETS.md and continue other work.
+3. Default recommendation per call: routine reviews (scaffolding, docs, frontend polish, config) → suggest **opus**; QUBO/math formulations, statistical protocol, artifact-schema contracts, secret/API-key-handling code → suggest **fable**.
