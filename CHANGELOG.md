@@ -9,6 +9,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.0] — 2026-07-19
+
+### Added
+- `feat: instance generator` (T1.3, commit 348fa95)
+  - `InstanceGenerator` class: configurable knobs — container count, port count, weight spread, hazmat fraction, seed
+  - Feasible-by-construction generation: every generated instance satisfies slot capacity and hazmat separation by design
+  - `--toy` mode: brute-force optimum computed and cached alongside instance JSON via `save_instance`
+  - `stowage.cli generate` subcommand: `--containers`, `--ports`, `--seed`, `--toy` flags
+  - `.gitattributes`: `*.json text eol=lf` — prevents CRLF corruption of toy JSON fixtures on Windows, preserving byte-identity under seed
+  - 100 unit tests; determinism byte-verified across platforms
+
+### Phase 1 close
+Phase 1 DoD ("configurable instances with known-optimum toys for later solver validation") met. All three tickets (T1.1, T1.2, T1.3) reviewed and approved (fable). Carry-forward items for Phase 2: D7 qubit-count table in phase1-spec.md is stale (n=12 → 3×2×3=18 slots → 216 one-hot vars; architect corrects in T2.1); T3.1 must include a nonzero-optimum seed (6 containers/3 ports/seed 2 → optimum 2); dual-RNG cosmetic improvement (SeedSequence([seed,1])) is optional.
+
+---
+
 ## [0.3.0] — 2026-07-19
 
 ### Added

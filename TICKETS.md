@@ -9,13 +9,13 @@ Status: TODO / IN-PROGRESS / IN-REVIEW / DONE. `[P]` = parallel-safe.
 
 ## Phase 1 — Ship model & instance generator
 **DoD:** configurable instances with known-optimum toys for later solver validation.
+**Demo (user gate):** `uv run python -m stowage.cli generate --containers 12 --ports 3 --seed 7` · `uv run pytest`
 - **T1.1 — Ship & container schema** · DONE · merged 2026-07-19 · branch main (71dacab) — bay/row/tier slot model, container (weight, destination port, hazmat class), pydantic + JSON round-trip; stability proxy: vertical + transverse moment bounds.
   *AC:* round-trip tests; moment computation unit-tested against hand-calculated examples. 16 tests passing; reviewer APPROVE (fable).
 - **T1.2 — Objective & feasibility checker** · DONE · merged 2026-07-19 · branch main (c61489e) — `check_feasibility` contract, overstowage objective (pairwise stack ordering vs port rotation), support/moment/hazmat separation constraints; independent of any encoding. 32 tests passing; reviewer APPROVE (fable).
   *AC:* adversarial tests per constraint; overstow count verified by hand on a 6-container example.
-- **T1.3 — Instance generator** · TODO — knobs: containers, ports in rotation, weight spread, hazmat fraction, seed; plus `--toy` mode emitting instances small enough to brute-force.
-  *AC:* deterministic under seed; toys brute-forceable (<20s) with optimum cached alongside.
-  *Notes (carry-forward from T1.1 reviewer):* add `.gitattributes` (`*.json -text` or `text eol=lf`) before committing toy JSONs — byte-identity tests break on Windows CRLF checkout; optimum-cache serialization must reuse `save_instance` (do not introduce a parallel write path).
+- **T1.3 — Instance generator** · DONE · merged 2026-07-19 · branch main (348fa95) — seeded feasible-by-construction generator with configurable knobs (containers, ports, weight spread, hazmat fraction); `--toy` flag caches brute-force optimum alongside instance JSON; `stowage.cli generate` subcommand; `.gitattributes` (`*.json text eol=lf`) for byte-identity on Windows. 100 tests passing; reviewer APPROVE (fable).
+  *AC:* deterministic under seed (byte-verified); toys brute-forceable (<20s) with optimum cached alongside via `save_instance`.
 
 ## Phase 2 — QUBO encodings
 **DoD:** two encodings behind one interface; ground states verified = brute-force optima on toys.
