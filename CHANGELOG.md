@@ -9,6 +9,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.0] — 2026-07-19
+
+### Added
+- `feat: objective & feasibility checker` (T1.2, commit c61489e)
+  - `check_feasibility` function: independent contract for validating stowage solutions against all constraints
+  - Overstowage objective: pairwise stack-ordering count vs port rotation sequence
+  - Support constraints: every container assigned to exactly one slot, every slot holds at most one container
+  - Moment bounds: vertical and transverse moment feasibility checks
+  - Hazmat separation rules: class-pair exclusion zones enforced
+  - 32 unit tests including adversarial cases per constraint; overstow count hand-verified on a 6-container example
+
+---
+
 ## [0.2.0] — 2026-07-19
 
 ### Added

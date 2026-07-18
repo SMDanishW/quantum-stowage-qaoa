@@ -11,7 +11,7 @@ Status: TODO / IN-PROGRESS / IN-REVIEW / DONE. `[P]` = parallel-safe.
 **DoD:** configurable instances with known-optimum toys for later solver validation.
 - **T1.1 — Ship & container schema** · DONE · merged 2026-07-19 · branch main (71dacab) — bay/row/tier slot model, container (weight, destination port, hazmat class), pydantic + JSON round-trip; stability proxy: vertical + transverse moment bounds.
   *AC:* round-trip tests; moment computation unit-tested against hand-calculated examples. 16 tests passing; reviewer APPROVE (fable).
-- **T1.2 — Objective & feasibility checker** · TODO — overstowage counting (pairwise stack ordering vs port rotation), hazmat separation rules, moment bounds; independent of any encoding.
+- **T1.2 — Objective & feasibility checker** · DONE · merged 2026-07-19 · branch main (c61489e) — `check_feasibility` contract, overstowage objective (pairwise stack ordering vs port rotation), support/moment/hazmat separation constraints; independent of any encoding. 32 tests passing; reviewer APPROVE (fable).
   *AC:* adversarial tests per constraint; overstow count verified by hand on a 6-container example.
 - **T1.3 — Instance generator** · TODO — knobs: containers, ports in rotation, weight spread, hazmat fraction, seed; plus `--toy` mode emitting instances small enough to brute-force.
   *AC:* deterministic under seed; toys brute-forceable (<20s) with optimum cached alongside.
