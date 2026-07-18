@@ -4,17 +4,18 @@ Status: TODO / IN-PROGRESS / IN-REVIEW / DONE. `[P]` = parallel-safe.
 
 ## Phase 0 — Scaffolding
 **DoD:** clean clone → tests green in CI.
-- **T0.1 — Python scaffold + CI** · TODO — uv project, package layout, pytest/ruff/mypy, GitHub Actions, LICENSE/README stub, docs skeleton.
+- **T0.1 — Python scaffold + CI** · DONE · merged 2026-07-19 · branch main (4fb187e) — uv project, package layout, pytest/ruff/mypy, GitHub Actions, LICENSE/README stub, docs skeleton.
   *AC:* CI green; placeholder test passes.
 
 ## Phase 1 — Ship model & instance generator
 **DoD:** configurable instances with known-optimum toys for later solver validation.
-- **T1.1 — Ship & container schema** · TODO — bay/row/tier slot model, container (weight, destination port, hazmat class), pydantic + JSON round-trip; stability proxy: vertical + transverse moment bounds.
-  *AC:* round-trip tests; moment computation unit-tested against hand-calculated examples.
+- **T1.1 — Ship & container schema** · DONE · merged 2026-07-19 · branch main (71dacab) — bay/row/tier slot model, container (weight, destination port, hazmat class), pydantic + JSON round-trip; stability proxy: vertical + transverse moment bounds.
+  *AC:* round-trip tests; moment computation unit-tested against hand-calculated examples. 16 tests passing; reviewer APPROVE (fable).
 - **T1.2 — Objective & feasibility checker** · TODO — overstowage counting (pairwise stack ordering vs port rotation), hazmat separation rules, moment bounds; independent of any encoding.
   *AC:* adversarial tests per constraint; overstow count verified by hand on a 6-container example.
 - **T1.3 — Instance generator** · TODO — knobs: containers, ports in rotation, weight spread, hazmat fraction, seed; plus `--toy` mode emitting instances small enough to brute-force.
   *AC:* deterministic under seed; toys brute-forceable (<20s) with optimum cached alongside.
+  *Notes (carry-forward from T1.1 reviewer):* add `.gitattributes` (`*.json -text` or `text eol=lf`) before committing toy JSONs — byte-identity tests break on Windows CRLF checkout; optimum-cache serialization must reuse `save_instance` (do not introduce a parallel write path).
 
 ## Phase 2 — QUBO encodings
 **DoD:** two encodings behind one interface; ground states verified = brute-force optima on toys.
