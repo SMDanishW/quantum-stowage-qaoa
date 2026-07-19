@@ -19,12 +19,13 @@ Status: TODO / IN-PROGRESS / IN-REVIEW / DONE. `[P]` = parallel-safe.
 
 ## Phase 2 — QUBO encodings
 **DoD:** two encodings behind one interface; ground states verified = brute-force optima on toys.
-- **T2.1 — Encoding spec (architect-led)** · TODO — full math for one-hot x_{c,s} (penalties: one-slot-per-container, one-container-per-slot, moment via quadratic penalty or slack discretization — decide!, overstow pairwise terms, hazmat pairs) AND domain-wall slot-assignment variant; qubit-count table 8–20 containers for both.
+- **T2.1 — Encoding spec (architect-led)** · DONE · merged 2026-07-19 · branch main (c67efd1) — full QUBO math for one-hot and domain-wall encodings; moment constraint handled via soft quadratic penalty (rationale documented); qubit-count table 8–20 containers for both encodings; spec amended mid-ticket to resolve §6 internal inconsistency (user adjudicated "option B": QUBO ground-state assertions target relaxed optimum, moments skipped, energy identity holds vs constrained optimum, `OptimumRecord` gained required `relaxed_optimal_objective` field).
   *AC:* spec merged; explicit decision + rationale on moment-constraint handling.
-- **T2.2 — One-hot encoder + decoder** · TODO
+- **T2.2 — One-hot encoder + decoder** · DONE · merged 2026-07-19 · branch main (c67efd1) — one-hot QUBO encoder/decoder, `PenaltyReport`, `EncodingBuild` interface, `relaxed_optimal_objective` extension to `OptimumRecord`, toy fixtures committed; 120 fast tests + slow 2^24 exhaustive sweep green; reviewer APPROVE (fable).
   *AC:* toy ground states (exact eigensolver / exhaustive) equal cached brute-force optima; penalty_report logged.
 - **T2.3 — Domain-wall encoder + decoder** · TODO
   *AC:* same ground-state verification; qubit-count reduction vs one-hot measured and asserted in a test.
+  *Carry-forward (reviewer flag):* all committed toy fixtures have a single hazmat container — `H_haz` is otherwise untested by the current suite. T2.3 must include a hand-built 2-hazmat-container instance that exercises the hazmat penalty term. Same blind spot applies to the domain-wall `H_haz` terms.
 
 ## Phase 3 — QAOA & baselines
 **DoD:** all methods run via CLI on both encodings; results reproducible.

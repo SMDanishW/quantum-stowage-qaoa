@@ -9,6 +9,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.0] — 2026-07-19
+
+### Added
+- `feat: one-hot QUBO encoder + decoder` (T2.2, commit c67efd1)
+  - `EncodingBuild` interface: `Encoding.build(instance) -> (BQM, decode_fn)` — QAOA and SA run identically over both encodings via this contract
+  - One-hot encoder: constructs QUBO over `x_{c,s}` binary variables; penalty terms for one-slot-per-container, one-container-per-slot, overstowage pairwise ordering, and hazmat separation
+  - Moment constraint handled via soft quadratic penalty (decision rationale in `docs/specs/phase-2-spec.md`)
+  - `PenaltyReport`: logged per-run breakdown of constraint penalty contributions
+  - `OptimumRecord` extended with required `relaxed_optimal_objective` field — ground-state assertions now target the relaxed (moment-penalty-free) optimum; energy identity holds vs constrained optimum
+  - Toy fixtures committed under `tests/fixtures/`; exhaustive 2^24 sweep confirms ground states equal cached brute-force optima
+  - 120 fast unit tests + slow exhaustive sweep; reviewer APPROVE (fable)
+
+### Changed
+- `OptimumRecord` schema: added `relaxed_optimal_objective` (required field) — resolves §6 inconsistency in phase-2 spec where QUBO ground-state assertions were internally contradictory; user adjudicated "option B" (moments excluded from optimum target, energy identity preserved vs constrained optimum)
+
+---
+
 ## [0.4.0] — 2026-07-19
 
 ### Added
