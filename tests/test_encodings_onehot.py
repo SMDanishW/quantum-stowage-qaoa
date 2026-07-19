@@ -245,6 +245,7 @@ def test_hazmat_free_has_no_haz_reward() -> None:
     assert build.bqm.energy(ENC.encode_assignment(inst, a)) == 0.0
 
 
-def test_registry_has_only_onehot() -> None:
-    assert set(ENCODINGS) == {"onehot"}
+def test_registry_has_onehot() -> None:
+    # T2.3 appended "domainwall"; onehot must still be present and correctly typed.
+    assert "onehot" in ENCODINGS
     assert isinstance(ENCODINGS["onehot"], OneHotEncoding)

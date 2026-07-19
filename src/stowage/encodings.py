@@ -207,6 +207,197 @@ def _make_onehot_decoder(cids: list[str], n_slots: int) -> DecodeFn:
     return decode
 
 
-ENCODINGS: dict[str, OneHotEncoding] = {
+# --------------------------------------------------------------------------- #
+# domain-wall encoding (T2.3)
+# --------------------------------------------------------------------------- #
+LinForm = tuple[float, dict[str, float]]  # (constant, {var_label: coeff}) — affine in d
+
+
+def _dvar(cid: str, k: int) -> str:
+    """Domain-wall variable label d_{cid,k}, k in 1..S-1 (e.g. ``d_C3_2``)."""
+    return f"d_{cid}_{k}"
+
+
+def _indicator_form(cid: str, k: int, n_slots: int) -> LinForm:
+    """Slot indicator I_{c,k} = d_{c,k} - d_{c,k+1} as an affine form in d (spec §4).
+
+    Virtual clamps d_{c,0} == 1, d_{c,S} == 0 are substituted, producing a constant
+    at the endpoints that flows into the BQM offset.
+    """
+    if k == 0:
+        return 1.0, {_dvar(cid, 1): -1.0}  # I = 1 - d_{c,1}
+    if k == n_slots - 1:
+        return 0.0, {_dvar(cid, n_slots - 1): 1.0}  # I = d_{c,S-1}
+    return 0.0, {_dvar(cid, k): 1.0, _dvar(cid, k + 1): -1.0}
+
+
+def _add_linear_form(bqm: dimod.BinaryQuadraticModel, w: float, form: LinForm) -> None:
+    """Accumulate ``w * form`` (an affine indicator) into linear biases + offset."""
+    const, lin = form
+    bqm.offset += w * const
+    for v, a in lin.items():
+        bqm.add_linear(v, w * a)
+
+
+def _add_product(
+    bqm: dimod.BinaryQuadraticModel, w: float, f1: LinForm, f2: LinForm
+) -> None:
+    """Accumulate ``w * f1 * f2`` into the BQM (constant/linear/quadratic parts).
+
+    Binary identity x*x = x folds coincident variables into the linear part
+    (dimod forbids self-loops), which is exactly the H_sup c'=c overlap case.
+    """
+    c1, l1 = f1
+    c2, l2 = f2
+    bqm.offset += w * c1 * c2
+    for v, b in l2.items():
+        bqm.add_linear(v, w * c1 * b)
+    for v, a in l1.items():
+        bqm.add_linear(v, w * c2 * a)
+    for vi, a in l1.items():
+        for vj, b in l2.items():
+            coeff = w * a * b
+            if vi == vj:
+                bqm.add_linear(vi, coeff)
+            else:
+                bqm.add_quadratic(vi, vj, coeff)
+
+
+def _domainwall_core(
+    instance: Instance,
+) -> tuple[dimod.BinaryQuadraticModel, dict[str, float], list[str], int]:
+    """Assemble the non-validity Hamiltonian H_obj+H_slot+H_sup+H_haz over d-vars.
+
+    Returns the (registered) BQM, the objective/constraint weights, container ids
+    and n_slots. P_dw (D14) is computed by the caller from this BQM's bias mass;
+    exposing this core is what lets the test recompute P_dw independently.
+    """
+    ship = instance.ship
+    containers = instance.containers
+    n = len(containers)
+    n_slots = ship.n_slots
+    cids = [c.id for c in containers]
+
+    f_max = n * (n - 1) // 2
+    weight_a = float((n + 1) * (f_max + 1))
+    p_sup = float(f_max + 1)
+    p_haz = float(f_max + 1)
+
+    order = {p: i for i, p in enumerate(instance.port_rotation)}
+    dest_order = {c.id: order[c.destination] for c in containers}
+
+    bqm = dimod.BinaryQuadraticModel(dimod.BINARY)
+    for cid in cids:
+        for k in range(1, n_slots):  # d_{cid,1} .. d_{cid,S-1} -> n*(S-1) variables
+            bqm.add_variable(_dvar(cid, k), 0.0)
+
+    stackpairs = _stackpairs(ship)
+    adj_pairs = _adjacent_slot_pairs(ship)
+
+    def ind(cid: str, s: int) -> LinForm:
+        return _indicator_form(cid, s, n_slots)
+
+    # H_obj: Σ I_{hi,u} I_{lo,v} over overstow-inducing (container pair, stack pair)
+    for a, b in combinations(cids, 2):
+        for hi, lo in ((a, b), (b, a)):
+            if dest_order[hi] > dest_order[lo]:
+                for u, v in stackpairs:
+                    _add_product(bqm, 1.0, ind(hi, u), ind(lo, v))
+
+    # H_slot = A * Σ_s Σ_{c<c'} I_{c,s} I_{c',s}
+    for s in range(n_slots):
+        for c, cp in combinations(cids, 2):
+            _add_product(bqm, weight_a, ind(c, s), ind(cp, s))
+
+    # H_sup = P_sup * Σ_{tier(u)>0} [ Σ_c I_{c,u} - Σ_c Σ_{c'} I_{c,u} I_{c',below(u)} ]
+    for u in range(n_slots):
+        _, _, tier = slot_to_brt(ship, u)
+        if tier == 0:
+            continue
+        below = _below(ship, u)
+        for cid in cids:
+            _add_linear_form(bqm, p_sup, ind(cid, u))
+        for c in cids:
+            for cp in cids:
+                _add_product(bqm, -p_sup, ind(c, u), ind(cp, below))
+
+    # H_haz = P_haz * Σ_{haz pairs} Σ_{adj(s,s')} (I_{a,s}I_{b,s'} + I_{a,s'}I_{b,s})
+    haz_ids = [c.id for c in containers if c.hazmat_class is not None]
+    for a, b in combinations(haz_ids, 2):
+        for s, sp in adj_pairs:
+            _add_product(bqm, p_haz, ind(a, s), ind(b, sp))
+            _add_product(bqm, p_haz, ind(a, sp), ind(b, s))
+
+    weights = {"A": weight_a, "P_sup": p_sup, "P_haz": p_haz}
+    return bqm, weights, cids, n_slots
+
+
+class DomainWallEncoding:
+    """Per-container domain-wall register d_{c,1..S-1} over the slot choice (spec §4)."""
+
+    name = "domainwall"
+
+    def build(self, instance: Instance) -> EncodingBuild:
+        n = len(instance.containers)
+        f_max = n * (n - 1) // 2
+        bqm, weights, cids, n_slots = _domainwall_core(instance)
+
+        # D14: P_dw = 1 + Σ|bias| over ALL non-validity linear + quadratic terms.
+        mass = sum(abs(b) for b in bqm.linear.values())
+        mass += sum(abs(c) for c in bqm.quadratic.values())
+        p_dw = 1.0 + mass
+
+        # H_dw = P_dw * Σ_c Σ_{k=1}^{S-2} (d_{c,k+1} - d_{c,k} d_{c,k+1}); zero on valid walls.
+        for cid in cids:
+            for k in range(1, n_slots - 1):
+                bqm.add_linear(_dvar(cid, k + 1), p_dw)
+                bqm.add_quadratic(_dvar(cid, k), _dvar(cid, k + 1), -p_dw)
+
+        weights = {**weights, "P_dw": p_dw}
+        report = PenaltyReport(
+            encoding=self.name,
+            n_containers=n,
+            n_slots=n_slots,
+            n_variables=len(bqm.variables),
+            f_max=f_max,
+            weights=weights,
+            n_quadratic_terms=len(bqm.quadratic),
+            max_abs_objective_coeff=1.0,  # objective term coefficient is +1 per §4
+            energy_scale_ratio=max(weights.values()) / 1.0,
+        )
+        logger.info(report.model_dump_json())
+
+        decode = _make_domainwall_decoder(cids, n_slots)
+        return EncodingBuild(bqm=bqm, decode=decode, penalty_report=report)
+
+    def encode_assignment(self, instance: Instance, assignment: Assignment) -> dict[str, int]:
+        """Map a Phase 1 assignment to a domain-wall sample: slot k -> d_{c,j}=1 for j<=k."""
+        n_slots = instance.ship.n_slots
+        sample: dict[str, int] = {}
+        for c in instance.containers:
+            slot = assignment[c.id]
+            for k in range(1, n_slots):
+                sample[_dvar(c.id, k)] = 1 if k <= slot else 0
+        return sample
+
+
+def _make_domainwall_decoder(cids: list[str], n_slots: int) -> DecodeFn:
+    """Decoder: register ``1^k 0^(S-1-k)`` -> slot k; anything else -> sentinel -1 (D13)."""
+
+    def decode(sample: Sample) -> Assignment:
+        assignment: Assignment = {}
+        for cid in cids:
+            bits = [int(sample[_dvar(cid, k)]) for k in range(1, n_slots)]
+            monotone = all(b in (0, 1) for b in bits) and all(
+                bits[i] >= bits[i + 1] for i in range(len(bits) - 1)
+            )
+            assignment[cid] = sum(bits) if monotone else SENTINEL
+        return assignment
+
+    return decode
+
+
+ENCODINGS: dict[str, OneHotEncoding | DomainWallEncoding] = {
     "onehot": OneHotEncoding(),
+    "domainwall": DomainWallEncoding(),
 }
