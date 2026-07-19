@@ -1,0 +1,17 @@
+{
+  "elapsed_seconds": 2.188,
+  "instance_name": "stow_c6_p3_s7_toy",
+  "method": "brute_force",
+  "n_evaluated": 60480,
+  "n_feasible": 360,
+  "optimal_assignment": {
+    "C1": 0,
+    "C2": 3,
+    "C3": 1,
+    "C4": 4,
+    "C5": 6,
+    "C6": 7
+  },
+  "optimal_objective": 0,
+  "relaxed_optimal_objective": 0
+}

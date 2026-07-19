@@ -1,0 +1,65 @@
+{
+  "containers": [
+    {
+      "destination": "P3",
+      "hazmat_class": null,
+      "id": "C1",
+      "weight": 11.5
+    },
+    {
+      "destination": "P2",
+      "hazmat_class": null,
+      "id": "C2",
+      "weight": 12.5
+    },
+    {
+      "destination": "P1",
+      "hazmat_class": null,
+      "id": "C3",
+      "weight": 25.4
+    },
+    {
+      "destination": "P3",
+      "hazmat_class": 1,
+      "id": "C4",
+      "weight": 7.3
+    },
+    {
+      "destination": "P3",
+      "hazmat_class": null,
+      "id": "C5",
+      "weight": 20.0
+    },
+    {
+      "destination": "P1",
+      "hazmat_class": null,
+      "id": "C6",
+      "weight": 23.2
+    }
+  ],
+  "generator_params": {
+    "bound_slack": 1.1,
+    "hazmat_fraction": 0.15,
+    "n_containers": 6,
+    "n_ports": 3,
+    "seed": 2,
+    "toy": 1,
+    "weight_max": 30.0,
+    "weight_min": 5.0
+  },
+  "name": "stow_c6_p3_s2_toy",
+  "port_rotation": [
+    "P1",
+    "P2",
+    "P3"
+  ],
+  "schema_version": 1,
+  "seed": 2,
+  "ship": {
+    "max_transverse_moment": 8.325,
+    "max_vertical_moment": 34.43,
+    "n_bays": 1,
+    "n_rows": 3,
+    "n_tiers": 3
+  }
+}
