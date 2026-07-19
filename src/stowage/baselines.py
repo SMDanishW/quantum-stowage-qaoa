@@ -25,6 +25,7 @@ class OptimumRecord(BaseModel):
     instance_name: str
     method: str = "brute_force"
     optimal_objective: int
+    relaxed_optimal_objective: int  # min overstow over {valid ∧ supported ∧ hazmat_ok}
     optimal_assignment: Assignment
     n_feasible: int
     n_evaluated: int
@@ -53,6 +54,7 @@ def brute_force_optimum(instance: Instance) -> OptimumRecord:
     start = time.perf_counter()
     best_obj: int | None = None
     best_assignment: Assignment | None = None
+    best_relaxed: int | None = None  # min overstow over relaxed-feasible set (moments skipped)
     n_feasible = 0
     n_evaluated = 0
 
@@ -60,6 +62,9 @@ def brute_force_optimum(instance: Instance) -> OptimumRecord:
         n_evaluated += 1
         assignment: Assignment = dict(zip(ids, placement, strict=True))
         report = check_feasibility(instance, assignment)
+        relaxed_ok = report.assignment_valid and report.supported and report.hazmat_ok
+        if relaxed_ok and (best_relaxed is None or report.overstow_count < best_relaxed):
+            best_relaxed = report.overstow_count
         if not report.feasible:
             continue
         n_feasible += 1
@@ -68,7 +73,7 @@ def brute_force_optimum(instance: Instance) -> OptimumRecord:
             best_assignment = assignment
 
     elapsed = time.perf_counter() - start
-    if best_obj is None or best_assignment is None:
+    if best_obj is None or best_assignment is None or best_relaxed is None:
         raise RuntimeError(
             f"no feasible assignment found for '{instance.name}' — generator "
             "feasibility guarantee violated"
@@ -76,6 +81,7 @@ def brute_force_optimum(instance: Instance) -> OptimumRecord:
     return OptimumRecord(
         instance_name=instance.name,
         optimal_objective=best_obj,
+        relaxed_optimal_objective=best_relaxed,
         optimal_assignment=best_assignment,
         n_feasible=n_feasible,
         n_evaluated=n_evaluated,

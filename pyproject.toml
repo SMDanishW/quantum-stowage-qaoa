@@ -34,7 +34,10 @@ packages = ["src/stowage"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not slow'"
+markers = [
+    "slow: full 2^N enumeration sweeps (deselected by default; run at phase gate via -m slow)",
+]
 
 [tool.ruff]
 line-length = 100
