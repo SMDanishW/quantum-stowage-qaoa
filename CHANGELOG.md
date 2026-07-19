@@ -9,6 +9,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.0] — 2026-07-19
+
+### Added
+- `feat: domain-wall encoder + decoder` (T2.3, commit 13909de)
+  - `DomainWallEncoding` implementing `EncodingBuild` interface — QAOA and SA run over DW encoding identically to one-hot via shared contract
+  - Domain-wall QUBO: variables `d_{c,k}` encode container-slot assignments as monotone 0→1 transitions; valid assignments require consecutive wall states
+  - Wall-validity penalty `P_dw`: penalises invalid (non-monotone) domain-wall states; independently verified by reviewer including boundary cases
+  - Qubit-count reduction vs one-hot: asserted in a dedicated test; reduction matches D12 analysis from phase-2 spec
+  - 2-hazmat-container fixture: hand-built instance parametrized over both encodings; exercises `H_haz` penalty terms previously untested in DW context
+  - Ground-state verification: toy ground states (exhaustive sweep) equal cached brute-force optima for DW encoding
+  - 151 tests passing (31 net-new from T2.3); reviewer APPROVE (opus)
+
+### Phase 2 close
+Phase 2 DoD ("two encodings behind one interface; ground states verified = brute-force optima on toys") met. All three tickets (T2.1, T2.2, T2.3) reviewed and approved. Carry-forwards into Phase 3: (a) T3.1 AC names "8-container toy" which exceeds the 26-qubit statevector guard — AC must be amended to target n=4 toy and assert recovery vs relaxed optimum; (b) toy optima are near-degenerate (mostly 0) — QAOA validation must use constrained-nonzero seed (s2) for objective discrimination; (c) DW `energy_scale_ratio` is dominated by `P_dw` (large) — may affect QAOA trainability and should be logged in the depth study.
+
+---
+
 ## [0.5.0] — 2026-07-19
 
 ### Added
